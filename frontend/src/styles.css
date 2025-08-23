@@ -1,0 +1,176 @@
+/* ====== Design Tokens (Dark by default) ====== */
+:root{
+  --bg: #0f172a;           /* slate-900 */
+  --panel: #111827;        /* gray-900 */
+  --muted: #9ca3af;        /* gray-400 */
+  --text: #e5e7eb;         /* gray-200 */
+  --brand: #6366f1;        /* indigo-500 */
+  --brand-2: #8b5cf6;      /* violet-500 */
+  --ok: #10b981;           /* emerald-500 */
+  --warn: #f59e0b;         /* amber-500 */
+  --danger: #ef4444;       /* red-500 */
+  --border: #1f2937;       /* gray-800 */
+  --card: #0b1220;         /* deep panel */
+  --chip: #1f2937;         /* chip bg */
+  --radius: 14px;
+  --shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+
+/* ====== Light theme overrides ====== */
+:root[data-theme="light"]{
+  --bg: #f5f7fb;
+  --panel: #ffffff;
+  --muted: #475569;         /* slate-600 */
+  --text: #0f172a;          /* slate-900 */
+  --brand: #4f46e5;         /* indigo-600 */
+  --brand-2: #a855f7;       /* violet-500 */
+  --ok: #059669;            /* emerald-600 */
+  --warn: #d97706;          /* amber-600 */
+  --danger: #dc2626;        /* red-600 */
+  --border: #e5e7eb;        /* gray-200 */
+  --card: #ffffff;
+  --chip: #eef2ff;          /* indigo-50 */
+  --shadow: 0 10px 30px rgba(0,0,0,.08);
+}
+
+/* ====== Base (no scrolling bg on body) ====== */
+*{ box-sizing: border-box; }
+html,body,#root{ height:100%; }
+
+body{
+  margin:0;
+  color: var(--text);
+  font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: transparent; /* gradient moved to ::before */
+}
+
+/* Fixed, non-scrolling background for dark theme */
+body::before{
+  content:"";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #1e293b 0%, transparent 60%),
+    radial-gradient(1000px 500px at 100% 0%, #312e81 0%, transparent 60%),
+    var(--bg);
+  background-repeat: no-repeat;
+  background-size: cover;         /* stays steady when scrolling */
+  background-attachment: fixed;
+}
+
+/* Fixed background for light theme */
+:root[data-theme="light"] body::before{
+  content:"";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #e2e8f0 0%, transparent 60%),
+    radial-gradient(1000px 500px at 100% 0%, #e9d5ff 0%, transparent 60%),
+    var(--bg);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
+}
+
+/* ====== Layout ====== */
+.container{ max-width: 1120px; margin: 28px auto; padding: 0 16px; }
+.header{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 18px; }
+.brand{ display:flex; align-items:center; gap:12px; }
+.logo{ width:40px; height:40px; border-radius:10px; background: linear-gradient(135deg, var(--brand), var(--brand-2)); box-shadow: var(--shadow); }
+.h1{ font-size: 24px; margin:0; letter-spacing:.3px; }
+.nav a{ color: var(--muted); text-decoration:none; font-weight:600; padding: 6px 8px; border-radius: 8px; }
+.nav a:hover{ color: var(--text); background: rgba(255,255,255,.06); }
+
+/* ====== Card & Panel ====== */
+.card{ background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.card-header{ padding:14px 16px; border-bottom:1px solid var(--border); font-weight:700; }
+.card-body{ padding:16px; }
+
+/* ====== Toolbar / Inputs ====== */
+.toolbar{ display:flex; gap:10px; flex-wrap:wrap; margin:14px 0; }
+.input, .select, textarea.input{ background: var(--card); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:10px 12px; outline:none; width:100%; }
+.input::placeholder{ color: #6b7280; }
+
+/* ====== Buttons ====== */
+.btn{ border:none; padding:10px 14px; border-radius:10px; font-weight:700; cursor:pointer; background: linear-gradient(135deg, var(--brand), var(--brand-2)); color:white; transition: transform .05s ease, opacity .2s ease; }
+.btn:active{ transform: translateY(1px); }
+.btn[disabled]{ opacity:.6; cursor:not-allowed; }
+.btn-outline{ background: transparent; color: var(--text); border:1px solid var(--border); }
+.btn-danger{ background: linear-gradient(135deg, #ef4444, #f97316); color:white; }
+
+/* Theme Toggle */
+.theme-toggle{ display:inline-flex; align-items:center; gap:8px; font-weight:700; border:1px solid var(--border); padding:8px 10px; border-radius:999px; cursor:pointer; user-select:none; background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04)); }
+.theme-toggle span{ font-size:12px; color:var(--muted); }
+
+/* ====== Table ====== */
+.table{ width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border:1px solid var(--border); border-radius:var(--radius); }
+.table thead th{ background: var(--card); color:#cbd5e1; font-weight:700; text-align:left; padding:12px; border-bottom:1px solid var(--border); }
+:root[data-theme="light"] .table thead th{ color:#334155; }
+.table tbody td{ padding:12px; border-bottom:1px solid var(--border); }
+.table tbody tr:nth-child(odd){ background: rgba(255,255,255,.02); }
+:root[data-theme="light"] .table tbody tr:nth-child(odd){ background: rgba(0,0,0,.02); }
+.table a{ color:#a5b4fc; text-decoration:none; }
+.table a:hover{ text-decoration:underline; }
+
+/* ====== Badges / Chips ====== */
+.badge{ display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; font-weight:700; border:1px solid transparent; }
+.badge.open{        background:#0b3a2c; color:#a7f3d0; border-color:#065f46; }
+.badge.in_progress{ background:#332e0b; color:#fde68a; border-color:#b45309; }
+.badge.review{      background:#0b1433; color:#bfdbfe; border-color:#1d4ed8; }
+.badge.closed{      background:#331018; color:#fecaca; border-color:#b91c1c; }
+
+.badge.low{ background:#0b2433; color:#a5f3fc; border-color:#155e75; }
+.badge.medium{ background:#1f1535; color:#ddd6fe; border-color:#6d28d9; }
+.badge.high{ background:#2b1132; color:#fbcfe8; border-color:#a21caf; }
+.badge.urgent{ background:#3b0b0b; color:#fecaca; border-color:#dc2626; }
+
+/* Light theme badge tweaks */
+:root[data-theme="light"] .badge.open{        background:#ecfdf5; color:#065f46; border-color:#a7f3d0; }
+:root[data-theme="light"] .badge.in_progress{ background:#fffbeb; color:#b45309; border-color:#fde68a; }
+:root[data-theme="light"] .badge.review{      background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+:root[data-theme="light"] .badge.closed{      background:#fef2f2; color:#b91c1c; border-color:#fecaca; }
+:root[data-theme="light"] .badge.low{    background:#ecfeff; color:#155e75; border-color:#a5f3fc; }
+:root[data-theme="light"] .badge.medium{ background:#f5f3ff; color:#6d28d9; border-color:#ddd6fe; }
+:root[data-theme="light"] .badge.high{   background:#fdf2f8; color:#a21caf; border-color:#fbcfe8; }
+:root[data-theme="light"] .badge.urgent{ background:#fef2f2; color:#dc2626; border-color:#fecaca; }
+
+/* ====== Form ====== */
+.form{ display:grid; gap:10px; }
+.inline{ display:flex; gap:10px; flex-wrap:wrap; }
+
+/* ====== Pagination ====== */
+.pager{ display:flex; align-items:center; gap:8px; margin-top:10px; }
+.counter{ color:var(--muted); }
+
+/* ====== Utilities ====== */
+.small{ font-size:12px; color:var(--muted); }
+
+/* ====== Kanban niceties ====== */
+.card-body[ondragover]{ transition: background .15s ease, outline-color .15s ease; }
+/* Only highlight columns while dragging */
+.dragging .card-body[ondragover]:hover{
+  outline: 2px dashed var(--brand);
+  outline-offset: 4px;
+  background: rgba(99,102,241,.08);
+}
+:root[data-theme="light"] .dragging .card-body[ondragover]:hover{
+  background: rgba(79,70,229,.08);
+}
+
+/* ===== Overview KPIs ===== */
+.kpi-label{ font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
+.kpi-value{ font-size:28px; font-weight:800; line-height:1; margin:4px 0; }
+
+/* ===== Stacked Distribution Bar (if used) ===== */
+.bar{ width:100%; height:14px; border-radius:999px; overflow:hidden; border:1px solid var(--border); background: rgba(255,255,255,.06); display:flex; }
+:root[data-theme="light"] .bar{ background: rgba(0,0,0,.05); }
+.bar-fill{ height:100%; }
+
+/* ====== Responsive ====== */
+@media (max-width: 900px){
+  .header{ flex-direction: column; gap: 10px; align-items: flex-start; }
+}
