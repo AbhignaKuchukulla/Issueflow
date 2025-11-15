@@ -82,35 +82,3 @@ describe("IssueBuddy API Tests", () => {
   });
 
 });
-4. CI Pipeline Integration
-
-I integrated the test suite into a Continuous Integration (CI) pipeline (GitHub Actions).
-The pipeline performs the following steps automatically on every push or pull request:
-
-Checkout the repository
-
-Install dependencies (npm install)
-
-Run the test suite (npm test)
-
-Fail the pipeline if any test case fails
-
-This ensures:
-
-No broken code is merged
-
-API behaviour remains consistent
-
-Bugs are caught early
-
-5. Result
-
-By implementing unit and integration tests and automating them through CI, I achieved:
-
-Higher API reliability
-
-Independent test execution
-
-Early detection of issues
-
-Continuous validation of backend functionality
