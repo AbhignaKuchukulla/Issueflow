@@ -10,9 +10,10 @@ export default function App(){
           <h1 className="h1">IssueBuddy</h1>
         </div>
          <nav className="nav" style={{display:'flex', gap:12, alignItems:'center'}}>
-          <Link to="/">Tickets</Link>
-+         <Link to="/kanban">Kanban</Link>
-+         <ThemeToggle />
+          <Link to="/">Dashboard</Link>
+          <Link to="/tickets">Tickets</Link>
+          <Link to="/kanban">Kanban</Link>
+          <ThemeToggle />
         </nav>
       </header>
       <Outlet />

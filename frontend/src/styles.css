@@ -148,6 +148,23 @@ body::before{
 
 /* ====== Utilities ====== */
 .small{ font-size:12px; color:var(--muted); }
+.ticket-id{ font-size:11px; font-family:monospace; background:var(--chip); padding:2px 6px; border-radius:4px; color:var(--brand); }
+
+/* ====== Spinner ====== */
+.spinner{ border:3px solid var(--border); border-top-color:var(--brand); border-radius:50%; animation:spin 0.8s linear infinite; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+/* ====== Toast Notifications ====== */
+.toast-container{ position:fixed; top:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:10px; max-width:320px; }
+.toast{ padding:14px 18px; border-radius:var(--radius); box-shadow:var(--shadow); border:1px solid var(--border); animation:slideIn .2s ease; font-weight:600; }
+.toast-success{ background:linear-gradient(135deg, #10b981, #059669); color:white; }
+.toast-error{ background:linear-gradient(135deg, #ef4444, #dc2626); color:white; }
+.toast-info{ background:var(--card); color:var(--text); border-color:var(--brand); }
+
+@keyframes slideIn{
+  from{ transform:translateX(400px); opacity:0; }
+  to{ transform:translateX(0); opacity:1; }
+}
 
 /* ====== Kanban niceties ====== */
 .card-body[ondragover]{ transition: background .15s ease, outline-color .15s ease; }
@@ -169,6 +186,18 @@ body::before{
 .bar{ width:100%; height:14px; border-radius:999px; overflow:hidden; border:1px solid var(--border); background: rgba(255,255,255,.06); display:flex; }
 :root[data-theme="light"] .bar{ background: rgba(0,0,0,.05); }
 .bar-fill{ height:100%; }
+
+/* ===== Comments Section ===== */
+.comments-section{ margin-top:20px; }
+.comment-form{ }
+.comments-list{ display:flex; flex-direction:column; gap:12px; }
+.comment-card{ background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:10px; padding:12px; }
+:root[data-theme="light"] .comment-card{ background:rgba(0,0,0,.02); }
+
+/* ===== History Section ===== */
+.history-section{ margin-top:20px; }
+.history-entry{ background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:10px; padding:12px; }
+:root[data-theme="light"] .history-entry{ background:rgba(0,0,0,.02); }
 
 /* ====== Responsive ====== */
 @media (max-width: 900px){

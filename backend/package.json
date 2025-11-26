@@ -7,7 +7,7 @@
     "test": "set NODE_ENV=test&& mocha tests/*.test.js --timeout 5000 --exit",
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "seed": "node server.js --seed"
+    "seed": "node seed.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

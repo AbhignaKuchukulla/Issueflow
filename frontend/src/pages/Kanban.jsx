@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { listTickets, patchTicket } from '../api.js';
+import { useDebounce } from '../hooks/useDebounce.js';
+import { useToast } from '../components/Toast.jsx';
+import Spinner from '../components/Spinner.jsx';
 
 const COLS = [
   { key: 'open',        title: 'Open',        colorVar: '--ok' },
@@ -17,11 +20,31 @@ function TicketCard({ t }){
   const dragEnd = () => {
     document.body.classList.remove('dragging');
   };
+  
+  const handleKeyDown = (e, currentStatus) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      const statusOrder = ['open', 'in_progress', 'review', 'closed'];
+      const currentIndex = statusOrder.indexOf(currentStatus);
+      if (e.key === 'Enter' && currentIndex < statusOrder.length - 1) {
+        // Move to next status on Enter
+        const event = new Event('moveCard');
+        event.ticketId = t.id;
+        event.newStatus = statusOrder[currentIndex + 1];
+        window.dispatchEvent(event);
+      }
+    }
+  };
+  
   return (
     <div
       draggable
       onDragStart={dragStart}
       onDragEnd={dragEnd}
+      tabIndex={0}
+      role="button"
+      aria-label={`${t.title}. Status: ${t.status}. Priority: ${t.priority}. Press Enter to move to next status.`}
+      onKeyDown={(e) => handleKeyDown(e, t.status)}
       className="card"
       style={{ padding:12, marginBottom:10, cursor:'grab' }}
     >
@@ -145,6 +168,9 @@ export default function Kanban(){
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
+  const toast = useToast();
+
+  const debouncedQ = useDebounce(q, 300);
 
   async function load(){
     setLoading(true);
@@ -153,16 +179,33 @@ export default function Kanban(){
     setLoading(false);
   }
   useEffect(()=>{ load(); }, []);
+  
+  useEffect(() => {
+    const handleMoveCard = async (e) => {
+      const { ticketId, newStatus } = e;
+      const oldTickets = [...tickets];
+      setTickets(ts => ts.map(t => t.id === ticketId ? { ...t, status: newStatus } : t));
+      try {
+        await patchTicket(ticketId, { status: newStatus });
+        toast.success('Card moved successfully!');
+      } catch {
+        setTickets(oldTickets);
+        toast.error('Failed to move card');
+      }
+    };
+    window.addEventListener('moveCard', handleMoveCard);
+    return () => window.removeEventListener('moveCard', handleMoveCard);
+  }, [tickets, toast]);
 
   const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
+    const s = debouncedQ.trim().toLowerCase();
     if (!s) return tickets;
     return tickets.filter(t =>
       t.title.toLowerCase().includes(s) ||
       t.description.toLowerCase().includes(s) ||
       (t.assignee || '').toLowerCase().includes(s)
     );
-  }, [tickets, q]);
+  }, [tickets, debouncedQ]);
 
   const total = filtered.length;
 
@@ -170,12 +213,14 @@ export default function Kanban(){
     e.preventDefault();
     const id = e.dataTransfer.getData('text/plain');
     if (!id) return;
+    const oldTickets = [...tickets];
     setTickets(ts => ts.map(t => t.id === id ? { ...t, status: newStatus } : t));
     try {
       await patchTicket(id, { status: newStatus });
+      toast.success('Card moved successfully!');
     } catch {
-      await load();
-      alert('Failed to move card');
+      setTickets(oldTickets);
+      toast.error('Failed to move card');
     } finally {
       document.body.classList.remove('dragging');
     }
@@ -195,14 +240,16 @@ export default function Kanban(){
 
       <StackedArea tickets={filtered} />
 
-      {loading ? <div className="small">Loading…</div> :
+      {loading ? <div style={{display:'flex', alignItems:'center', gap:10, padding:20}}><Spinner /><span>Loading tickets...</span></div> :
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:16}}>
         {COLS.map(col => (
           <div key={col.key} className="card" style={{minHeight: 400}}>
-            <div className="card-header">{col.title}</div>
+            <div className="card-header" id={`column-${col.key}`}>{col.title}</div>
             <div
               className="card-body"
               style={{minHeight: 360}}
+              role="region"
+              aria-labelledby={`column-${col.key}`}
               onDragOver={onDragOver}
               onDrop={(e)=>onDropStatus(e, col.key)}
             >
