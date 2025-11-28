@@ -1,8 +1,13 @@
 {
-  "name": "issuebuddy-backend",
+  "name": "issueflow-backend",
   "version": "1.0.0",
+  "description": "IssueFlow Backend API - Professional issue tracking system",
   "type": "module",
   "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
     "test": "set NODE_ENV=test&& mocha tests/*.test.js --timeout 5000 --exit",
     "start": "node server.js",

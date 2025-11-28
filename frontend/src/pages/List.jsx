@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listTickets, createTicket, deleteTicket } from '../api.js';
 import TicketForm from '../components/TicketForm.jsx';
+import SavedFilters from '../components/SavedFilters.jsx';
 import Spinner from '../components/Spinner.jsx';
 import { useDebounce } from '../hooks/useDebounce.js';
 import { useToast } from '../components/Toast.jsx';
@@ -158,7 +159,7 @@ export default function List(){
   }
 
   return (
-    <div className="grid" style={{display:'grid', gridTemplateColumns:'1.2fr .8fr', gap:24}}>
+    <div className="grid" style={{display:'grid', gridTemplateColumns:'0.6fr 2.5fr', gap:32, alignItems: 'start', maxWidth: '100%'}}>
       {/* LEFT: list */}
       <div>
         <div className="card">
@@ -190,6 +191,34 @@ export default function List(){
             </div>
           </div>
           <div className="card-body">
+            {/* Saved Filters */}
+            <SavedFilters 
+              currentFilters={{
+                q,
+                status,
+                priority,
+                assignee: assigneeFilter,
+                sortBy,
+                sortOrder,
+                fromDate,
+                toDate,
+                overdue: overdueOnly
+              }}
+              onApplyFilter={(filters) => {
+                setQ(filters.q || '');
+                setStatus(filters.status || '');
+                setPriority(filters.priority || '');
+                setAssigneeFilter(filters.assignee || '');
+                setSortBy(filters.sortBy || 'updatedAt');
+                setSortOrder(filters.sortOrder || 'desc');
+                setFromDate(filters.fromDate || '');
+                setToDate(filters.toDate || '');
+                setOverdueOnly(filters.overdue || false);
+                setPage(1);
+              }}
+              showToast={(msg, type) => type === 'success' ? toast.success(msg) : toast.error(msg)}
+            />
+            
             {/* Filters */}
             <div className="toolbar">
               <input className="input" placeholder="Search title or description…" value={q} onChange={e=>setQ(e.target.value)} />

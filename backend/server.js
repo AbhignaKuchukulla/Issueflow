@@ -21,7 +21,7 @@ app.use(cors({
 const isTest = process.env.NODE_ENV === "test";
 const dbFile = isTest ? "./db.test.json" : "./db.json";
 
-const db = await JSONFilePreset(dbFile, { tickets: [], comments: [], history: [] });
+const db = await JSONFilePreset(dbFile, { tickets: [], comments: [], history: [], savedFilters: [] });
 
 function validate(payload, { partial=false } = {}) {
   const allowedStatus = ['open','in_progress','review','closed'];
@@ -49,6 +49,9 @@ function validate(payload, { partial=false } = {}) {
   }
   if (has('assignee') && payload.assignee && typeof payload.assignee === 'string' && payload.assignee.trim().length > 50) {
     e.push('assignee must be at most 50 chars');
+  }
+  if (has('relatedTickets') && payload.relatedTickets && !Array.isArray(payload.relatedTickets)) {
+    e.push('relatedTickets must be an array');
   }
   return e;
 }
@@ -311,6 +314,104 @@ app.post('/api/tickets/bulk', async (req,res) => {
   res.json(results);
 });
 
+// Ticket linking/dependencies
+app.post('/api/tickets/:id/link', async (req,res) => {
+  const ticket = db.data.tickets.find(t => t.id === req.params.id);
+  if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+  
+  const { relatedId, relationship } = req.body;
+  if (!relatedId) return res.status(400).json({ errors: ['Related ticket ID required'] });
+  
+  const relatedTicket = db.data.tickets.find(t => t.id === relatedId);
+  if (!relatedTicket) return res.status(404).json({ errors: ['Related ticket not found'] });
+  
+  // Initialize relatedTickets array if not exists
+  if (!ticket.relatedTickets) ticket.relatedTickets = [];
+  if (!relatedTicket.relatedTickets) relatedTicket.relatedTickets = [];
+  
+  // Add bidirectional link
+  const linkType = relationship || 'related';
+  const reverseLinkType = linkType === 'blocks' ? 'blocked_by' : (linkType === 'blocked_by' ? 'blocks' : 'related');
+  
+  const link = { id: relatedId, type: linkType };
+  const reverseLink = { id: ticket.id, type: reverseLinkType };
+  
+  // Avoid duplicates
+  if (!ticket.relatedTickets.find(r => r.id === relatedId)) {
+    ticket.relatedTickets.push(link);
+    ticket.updatedAt = new Date().toISOString();
+    addHistory(ticket.id, 'updated', { relatedTickets: { from: [], to: ticket.relatedTickets } }, req.body.user || 'System');
+  }
+  if (!relatedTicket.relatedTickets.find(r => r.id === ticket.id)) {
+    relatedTicket.relatedTickets.push(reverseLink);
+    relatedTicket.updatedAt = new Date().toISOString();
+  }
+  
+  await db.write();
+  res.json(ticket);
+});
+
+app.delete('/api/tickets/:id/link/:relatedId', async (req,res) => {
+  const ticket = db.data.tickets.find(t => t.id === req.params.id);
+  if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+  
+  const relatedId = req.params.relatedId;
+  const relatedTicket = db.data.tickets.find(t => t.id === relatedId);
+  
+  const oldLinks = ticket.relatedTickets ? [...ticket.relatedTickets] : [];
+  
+  if (ticket.relatedTickets) {
+    ticket.relatedTickets = ticket.relatedTickets.filter(r => r.id !== relatedId);
+    ticket.updatedAt = new Date().toISOString();
+    addHistory(ticket.id, 'updated', { relatedTickets: { from: oldLinks, to: ticket.relatedTickets } }, req.query.user || 'System');
+  }
+  
+  if (relatedTicket && relatedTicket.relatedTickets) {
+    relatedTicket.relatedTickets = relatedTicket.relatedTickets.filter(r => r.id !== ticket.id);
+    relatedTicket.updatedAt = new Date().toISOString();
+  }
+  
+  await db.write();
+  res.json(ticket);
+});
+
+// Saved Filters
+app.get('/api/filters', (req,res) => {
+  res.json(db.data.savedFilters || []);
+});
+
+app.post('/api/filters', async (req,res) => {
+  if (!db.data.savedFilters) db.data.savedFilters = [];
+  
+  const { name, filters } = req.body;
+  if (!name || !filters) {
+    return res.status(400).json({ errors: ['Name and filters required'] });
+  }
+  
+  const newFilter = {
+    id: nanoid(),
+    name: name.trim(),
+    filters,
+    createdAt: new Date().toISOString()
+  };
+  
+  db.data.savedFilters.push(newFilter);
+  await db.write();
+  res.status(201).json(newFilter);
+});
+
+app.delete('/api/filters/:id', async (req,res) => {
+  if (!db.data.savedFilters) db.data.savedFilters = [];
+  
+  const id = req.params.id;
+  const idx = db.data.savedFilters.findIndex(f => f.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Filter not found' });
+  
+  db.data.savedFilters.splice(idx, 1);
+  await db.write();
+  res.status(204).send();
+});
+
 // Analytics/Dashboard data
 app.get('/api/analytics', (req,res) => {
   const tickets = db.data.tickets;
@@ -359,7 +460,7 @@ app.get('/api/analytics', (req,res) => {
 
 if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, () =>
-    console.log(`IssueBuddy API listening on http://localhost:${PORT}`)
+    console.log(`IssueFlow API listening on http://localhost:${PORT}`)
   );
 }
 

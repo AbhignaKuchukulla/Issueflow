@@ -7,7 +7,7 @@ export default function App(){
       <header className="header">
         <div className="brand">
           <div className="logo" aria-hidden="true"></div>
-          <h1 className="h1">IssueBuddy</h1>
+          <h1 className="h1">IssueFlow</h1>
         </div>
          <nav className="nav" style={{display:'flex', gap:12, alignItems:'center'}}>
           <Link to="/">Dashboard</Link>

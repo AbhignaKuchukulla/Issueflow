@@ -73,3 +73,69 @@ export async function deleteComment(id) {
   const r = await fetch(`${BASE}/api/comments/${id}`, { method:'DELETE' });
   if (!r.ok && r.status !== 204) throw new Error(await r.text());
 }
+
+// Ticket History API
+export async function getTicketHistory(ticketId) {
+  const r = await fetch(`${BASE}/api/tickets/${ticketId}/history`);
+  if (!r.ok) throw new Error('Failed to load history');
+  return r.json();
+}
+
+// Bulk Operations API
+export async function bulkUpdateTickets(operation, ids, updates, user) {
+  const r = await fetch(`${BASE}/api/tickets/bulk`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ operation, ids, updates, user })
+  });
+  if (!r.ok) throw new Error('Bulk operation failed');
+  return r.json();
+}
+
+// Analytics API
+export async function getAnalytics() {
+  const r = await fetch(`${BASE}/api/analytics`);
+  if (!r.ok) throw new Error('Failed to load analytics');
+  return r.json();
+}
+
+// Ticket Linking API
+export async function linkTickets(ticketId, relatedId, relationship, user) {
+  const r = await fetch(`${BASE}/api/tickets/${ticketId}/link`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ relatedId, relationship, user })
+  });
+  if (!r.ok) throw new Error('Failed to link tickets');
+  return r.json();
+}
+
+export async function unlinkTickets(ticketId, relatedId, user) {
+  const r = await fetch(`${BASE}/api/tickets/${ticketId}/link/${relatedId}?user=${user || 'System'}`, {
+    method: 'DELETE'
+  });
+  if (!r.ok) throw new Error('Failed to unlink tickets');
+  return r.json();
+}
+
+// Saved Filters API
+export async function getSavedFilters() {
+  const r = await fetch(`${BASE}/api/filters`);
+  if (!r.ok) throw new Error('Failed to load filters');
+  return r.json();
+}
+
+export async function createSavedFilter(name, filters) {
+  const r = await fetch(`${BASE}/api/filters`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ name, filters })
+  });
+  if (!r.ok) throw new Error('Failed to save filter');
+  return r.json();
+}
+
+export async function deleteSavedFilter(id) {
+  const r = await fetch(`${BASE}/api/filters/${id}`, { method: 'DELETE' });
+  if (!r.ok && r.status !== 204) throw new Error('Failed to delete filter');
+}

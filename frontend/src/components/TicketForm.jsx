@@ -44,7 +44,7 @@ export default function TicketForm({ initial, onSubmit, submitting }){
   };
 
   return (
-    <form onSubmit={handleSubmit} className="form">
+    <form onSubmit={handleSubmit} className="form" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {!initial && (
         <div style={{ marginBottom: 12 }}>
           <label className="small" style={{ display: 'block', marginBottom: 6 }}>
@@ -70,17 +70,19 @@ export default function TicketForm({ initial, onSubmit, submitting }){
         maxLength={100}
         placeholder="Title (3-100 characters)" 
         value={title} 
-        onChange={e=>setTitle(e.target.value)} 
+        onChange={e=>setTitle(e.target.value)}
+        style={{ fontSize: '16px', padding: '14px 16px', fontWeight: 500 }}
       />
       <textarea 
         className="input" 
-        rows={8} 
+        rows={15} 
         required 
         minLength={3} 
         maxLength={1000}
         placeholder="Description (3-1000 characters)" 
         value={description} 
-        onChange={e=>setDescription(e.target.value)} 
+        onChange={e=>setDescription(e.target.value)}
+        style={{ minHeight: '300px', resize: 'vertical', fontSize: '15px', lineHeight: '1.7' }}
       />
       <div className="inline">
         <select className="select" value={status} onChange={e=>setStatus(e.target.value)}>
@@ -118,8 +120,10 @@ export default function TicketForm({ initial, onSubmit, submitting }){
         value={tags} 
         onChange={e=>setTags(e.target.value)} 
       />
-      <button className="btn" disabled={submitting}>{submitting ? 'Saving…' : 'Save Ticket'}</button>
-      <div className="small">Tip: Use templates for consistent ticket structure.</div>
+      <button className="btn btn-primary" disabled={submitting} style={{ padding: '16px 32px', fontSize: '16px', fontWeight: 700, marginTop: '6px' }}>
+        {submitting ? '⏳ Saving…' : '💾 Save Ticket'}
+      </button>
+      <div className="small" style={{ fontSize: '13px', marginTop: '-6px' }}>💡 Tip: Use templates for consistent ticket structure.</div>
     </form>
   );
 }

@@ -1,23 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Spinner from '../components/Spinner.jsx';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+import { getAnalytics } from '../api.js';
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const nav = useNavigate();
-
+  
   useEffect(() => {
     async function loadAnalytics() {
       try {
-        const res = await fetch(`${API_BASE}/api/analytics`);
-        if (res.ok) {
-          setData(await res.json());
-        }
+        const result = await getAnalytics();
+        setData(result);
       } catch (e) {
         console.error('Failed to load analytics', e);
+        setError(e.message);
       } finally {
         setLoading(false);
       }
@@ -32,13 +31,26 @@ export default function Dashboard() {
       </div>
     );
   }
-
-  if (!data) return <div className="small">Failed to load analytics</div>;
+  
+  if (error || !data) {
+    return (
+      <div className="card" style={{ padding: 20, textAlign: 'center' }}>
+        <div style={{ color: 'var(--danger)', marginBottom: 10, fontSize: 18 }}>⚠️ Failed to load analytics</div>
+        <div className="small" style={{ color: 'var(--text-muted)' }}>{error || 'Unknown error'}</div>
+        <button 
+          className="btn btn-primary" 
+          onClick={() => window.location.reload()}
+          style={{ marginTop: 16 }}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div>
       <h2 style={{ marginBottom: 20, fontSize: 20, fontWeight: 700 }}>Dashboard</h2>
-
       {/* Key Metrics */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
         <div className="card">

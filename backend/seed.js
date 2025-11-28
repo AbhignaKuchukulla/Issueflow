@@ -100,6 +100,12 @@ const sampleTickets = [
   }
 ];
 
+// Add ticket relationships after tickets are created
+sampleTickets[0].relatedTickets = [{ id: sampleTickets[4].id, type: 'related' }]; // Login responsiveness related to dark mode
+sampleTickets[1].relatedTickets = [{ id: sampleTickets[0].id, type: 'blocks' }]; // Password reset blocks login fix
+sampleTickets[4].relatedTickets = [{ id: sampleTickets[0].id, type: 'related' }]; // Dark mode related to login
+sampleTickets[7].relatedTickets = [{ id: sampleTickets[3].id, type: 'related' }]; // Memory leak related to DB optimization
+
 const sampleComments = [
   {
     id: nanoid(),
@@ -131,7 +137,63 @@ const sampleComments = [
   }
 ];
 
-const dbData = { tickets: sampleTickets, comments: sampleComments };
+const sampleHistory = [
+  {
+    id: nanoid(),
+    ticketId: sampleTickets[0].id,
+    action: 'created',
+    changes: { ticket: sampleTickets[0] },
+    user: 'Admin',
+    timestamp: sampleTickets[0].createdAt
+  },
+  {
+    id: nanoid(),
+    ticketId: sampleTickets[1].id,
+    action: 'created',
+    changes: { ticket: sampleTickets[1] },
+    user: 'Admin',
+    timestamp: sampleTickets[1].createdAt
+  },
+  {
+    id: nanoid(),
+    ticketId: sampleTickets[1].id,
+    action: 'updated',
+    changes: { status: { from: 'open', to: 'in_progress' } },
+    user: 'Sam',
+    timestamp: sampleTickets[1].updatedAt
+  }
+];
+
+const sampleSavedFilters = [
+  {
+    id: nanoid(),
+    name: 'My Open Tickets',
+    filters: {
+      status: 'open',
+      assignee: 'Alex',
+      sortBy: 'priority',
+      sortOrder: 'desc'
+    },
+    createdAt: new Date('2025-11-20T08:00:00Z').toISOString()
+  },
+  {
+    id: nanoid(),
+    name: 'Urgent Items',
+    filters: {
+      priority: 'urgent',
+      sortBy: 'dueDate',
+      sortOrder: 'asc'
+    },
+    createdAt: new Date('2025-11-21T09:00:00Z').toISOString()
+  }
+];
+
+const dbData = { 
+  tickets: sampleTickets, 
+  comments: sampleComments, 
+  history: sampleHistory,
+  savedFilters: sampleSavedFilters
+};
 
 fs.writeFileSync('./db.json', JSON.stringify(dbData, null, 2));
 

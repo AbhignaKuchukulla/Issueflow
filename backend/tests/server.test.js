@@ -8,7 +8,7 @@ beforeEach(() => {
     fs.writeFileSync("./db.json", JSON.stringify({ tickets: [] }, null, 2));
 });
 
-describe("IssueBuddy API Tests", () => {
+describe("IssueFlow API Tests", () => {
 
   let createdId = null;
 
