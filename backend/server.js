@@ -1,14 +1,38 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import http from 'http';
+import { Server } from 'socket.io';
 import { JSONFilePreset } from 'lowdb/node';
 import { nanoid } from 'nanoid';
+import { 
+  hashPassword, 
+  comparePasswords, 
+  generateToken, 
+  verifyToken, 
+  authMiddleware, 
+  validateEmail, 
+  validatePassword 
+} from './auth.js';
+import { 
+  sendEmail, 
+  mentionEmailTemplate, 
+  assignmentEmailTemplate, 
+  overdueEmailTemplate 
+} from './email.js';
 
 const PORT = process.env.PORT || 8080;
 const allowList = (process.env.ALLOWED_ORIGINS || '*')
   .split(',').map(s => s.trim()).filter(Boolean);
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: (process.env.ALLOWED_ORIGINS || '*').split(',').map(s => s.trim()),
+    methods: ['GET', 'POST']
+  }
+});
 app.use(express.json({ limit: '1mb' }));
 app.use(cors({
   origin: (origin, cb) => {
@@ -21,7 +45,11 @@ app.use(cors({
 const isTest = process.env.NODE_ENV === "test";
 const dbFile = isTest ? "./db.test.json" : "./db.json";
 
-const db = await JSONFilePreset(dbFile, { tickets: [], comments: [], history: [], savedFilters: [] });
+const db = await JSONFilePreset(dbFile, { tickets: [], comments: [], history: [], savedFilters: [], users: [] });
+
+// Real-time activity tracking
+const onlineUsers = new Map();
+const userConnections = new Map();
 
 function validate(payload, { partial=false } = {}) {
   const allowedStatus = ['open','in_progress','review','closed'];
@@ -57,6 +85,160 @@ function validate(payload, { partial=false } = {}) {
 }
 
 app.get('/health', (_req,res)=>res.json({ ok:true }));
+
+// ===== AUTH ENDPOINTS =====
+app.post('/api/auth/signup', async (req, res) => {
+  const { email, password, name } = req.body;
+
+  if (!validateEmail(email)) {
+    return res.status(400).json({ errors: ['Invalid email format'] });
+  }
+
+  if (!validatePassword(password)) {
+    return res.status(400).json({ errors: ['Password must be at least 6 characters'] });
+  }
+
+  if (!name || typeof name !== 'string' || name.trim().length < 2) {
+    return res.status(400).json({ errors: ['Name must be at least 2 characters'] });
+  }
+
+  const existingUser = db.data.users.find(u => u.email === email);
+  if (existingUser) {
+    return res.status(409).json({ errors: ['Email already registered'] });
+  }
+
+  const hashedPassword = await hashPassword(password);
+  const user = {
+    id: nanoid(),
+    email,
+    password: hashedPassword,
+    name: name.trim(),
+    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`,
+    role: 'user',
+    createdAt: new Date().toISOString()
+  };
+
+  db.data.users.push(user);
+  await db.write();
+
+  const token = generateToken(user.id, user.email);
+  res.status(201).json({
+    token,
+    user: { id: user.id, email: user.email, name: user.name, avatar: user.avatar, role: user.role }
+  });
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ errors: ['Email and password required'] });
+  }
+
+  const user = db.data.users.find(u => u.email === email);
+  if (!user) {
+    return res.status(401).json({ errors: ['Invalid credentials'] });
+  }
+
+  const passwordMatch = await comparePasswords(password, user.password);
+  if (!passwordMatch) {
+    return res.status(401).json({ errors: ['Invalid credentials'] });
+  }
+
+  const token = generateToken(user.id, user.email);
+  res.json({
+    token,
+    user: { id: user.id, email: user.email, name: user.name, avatar: user.avatar, role: user.role }
+  });
+});
+
+app.get('/api/auth/me', authMiddleware, (req, res) => {
+  const user = db.data.users.find(u => u.id === req.user.userId);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  res.json({
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    avatar: user.avatar,
+    role: user.role
+  });
+});
+
+app.get('/api/users', (req, res) => {
+  const users = db.data.users.map(u => ({
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    avatar: u.avatar,
+    role: u.role,
+    isOnline: onlineUsers.has(u.id)
+  }));
+  res.json(users);
+});
+
+app.get('/api/auth/verify', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ valid: false });
+
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+  const payload = verifyToken(token);
+  
+  if (!payload) return res.status(401).json({ valid: false });
+
+  const user = db.data.users.find(u => u.id === payload.userId);
+  if (!user) return res.status(401).json({ valid: false });
+
+  res.json({
+    valid: true,
+    user: { id: user.id, email: user.email, name: user.name, avatar: user.avatar }
+  });
+});
+
+// ===== WEBSOCKET EVENTS =====
+io.on('connection', (socket) => {
+  console.log(`User connected: ${socket.id}`);
+
+  socket.on('user:login', (userId) => {
+    onlineUsers.set(userId, { socketId: socket.id, loginTime: Date.now() });
+    userConnections.set(socket.id, userId);
+    io.emit('presence:update', {
+      userId,
+      isOnline: true,
+      user: db.data.users.find(u => u.id === userId)
+    });
+  });
+
+  socket.on('ticket:created', (ticket) => {
+    io.emit('ticket:created', ticket);
+  });
+
+  socket.on('ticket:updated', (ticket) => {
+    io.emit('ticket:updated', ticket);
+  });
+
+  socket.on('ticket:deleted', (ticketId) => {
+    io.emit('ticket:deleted', ticketId);
+  });
+
+  socket.on('comment:added', (comment) => {
+    io.emit('comment:added', comment);
+  });
+
+  socket.on('activity:log', (activity) => {
+    io.emit('activity:log', activity);
+  });
+
+  socket.on('disconnect', () => {
+    const userId = userConnections.get(socket.id);
+    if (userId) {
+      onlineUsers.delete(userId);
+      userConnections.delete(socket.id);
+      io.emit('presence:update', { userId, isOnline: false });
+    }
+    console.log(`User disconnected: ${socket.id}`);
+  });
+});
 
 app.get('/api/tickets', (req,res) => {
   const q = String(req.query.q ?? '').trim().toLowerCase();
@@ -142,6 +324,10 @@ app.post('/api/tickets', async (req,res) => {
   db.data.tickets.unshift(item);
   addHistory(item.id, 'created', { ticket: item }, req.body.user || 'Anonymous');
   await db.write();
+  
+  // Emit WebSocket event
+  io.emit('ticket:created', { ticket: item, user: req.body.user });
+  
   res.status(201).json(item);
 });
 
@@ -176,6 +362,20 @@ app.put('/api/tickets/:id', async (req,res) => {
   }
   db.data.tickets[idx] = updated;
   await db.write();
+  
+  // Emit WebSocket event
+  io.emit('ticket:updated', { ticket: updated, changes, user: req.body.user });
+  
+  // Send email notification if assignee changed
+  if (old.assignee !== updated.assignee && updated.assignee) {
+    const assignee = db.data.users.find(u => u.email === updated.assignee || u.id === updated.assignee);
+    if (assignee) {
+      const user = db.data.users.find(u => u.id === req.body.userId);
+      await sendEmail(assignee.email, `Assigned: ${updated.title}`, 
+        assignmentEmailTemplate(user?.name || 'Someone', updated, assignee.name));
+    }
+  }
+  
   res.json(updated);
 });
 
@@ -211,6 +411,10 @@ app.delete('/api/tickets/:id', async (req,res) => {
   db.data.tickets = db.data.tickets.filter(x => x.id !== req.params.id);
   db.data.comments = db.data.comments.filter(c => c.ticketId !== req.params.id);
   await db.write();
+  
+  // Emit WebSocket event
+  io.emit('ticket:deleted', { ticketId: req.params.id, user: req.query.user });
+  
   res.status(204).send();
 });
 
@@ -247,11 +451,30 @@ app.post('/api/tickets/:ticketId/comments', async (req,res) => {
     ticketId: req.params.ticketId,
     text: req.body.text.trim(),
     author: req.body.author || 'Anonymous',
+    authorId: req.body.authorId || '',
     createdAt: now
   };
   
   db.data.comments.unshift(comment);
   await db.write();
+  
+  // Emit WebSocket event
+  io.emit('comment:added', { comment, ticket });
+  
+  // Check for mentions (@username) and send email notifications
+  const mentions = comment.text.match(/@(\w+)/g);
+  if (mentions) {
+    for (const mention of mentions) {
+      const mentionedName = mention.slice(1);
+      const mentionedUser = db.data.users.find(u => u.name.toLowerCase() === mentionedName.toLowerCase());
+      if (mentionedUser) {
+        const author = db.data.users.find(u => u.id === req.body.authorId);
+        await sendEmail(mentionedUser.email, `Mentioned in ${ticket.title}`,
+          mentionEmailTemplate(author?.name || 'Someone', ticket, comment.text));
+      }
+    }
+  }
+  
   res.status(201).json(comment);
 });
 
@@ -459,8 +682,8 @@ app.get('/api/analytics', (req,res) => {
 });
 
 if (process.env.NODE_ENV !== "test") {
-  app.listen(PORT, () =>
-    console.log(`IssueFlow API listening on http://localhost:${PORT}`)
+  server.listen(PORT, () =>
+    console.log(`IssueFlow API with WebSocket listening on http://localhost:${PORT}`)
   );
 }
 
