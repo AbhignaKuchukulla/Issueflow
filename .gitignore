@@ -41,3 +41,10 @@ Thumbs.db
 
 # Database / local JSON data
 db.json
+
+# Documentation (guides for local use only)
+DEPLOYMENT_GUIDE.md
+QUICK_START.md
+IMPLEMENTATION_SUMMARY.md
+VERIFICATION.md
+DELIVERY_SUMMARY.txt

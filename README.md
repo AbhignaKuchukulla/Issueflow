@@ -8,6 +8,27 @@
 
 ## 🌟 Key Features
 
+### 🔐 **User Authentication** ✨ NEW
+- Secure JWT-based authentication
+- User signup/login with email validation
+- Password hashing with bcrypt
+- User profiles with avatars
+- Protected API endpoints
+
+### 🌐 **Real-Time Collaboration** ✨ NEW
+- WebSocket-powered live updates
+- Real-time activity feed
+- Online presence indicators
+- Instant ticket synchronization across all users
+- Live comment notifications
+
+### 📧 **Email Notifications** ✨ NEW
+- Mention notifications (@username triggers emails)
+- Assignment notifications
+- Overdue ticket alerts
+- HTML email templates
+- Support for Gmail, Office365, SendGrid, and custom SMTP
+
 ### 📊 **Dashboard & Analytics**
 Real-time KPIs, status/priority breakdowns, team performance metrics, and recent activity feed
 
@@ -69,6 +90,16 @@ Backend `.env`:
 ```env
 PORT=8080
 ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+
+# Authentication
+JWT_SECRET=your-super-secret-key-min-32-chars
+JWT_EXPIRY=7d
+
+# Email (Optional - for notifications)
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASSWORD=your-app-password
+EMAIL_HOST=smtp.gmail.com
+FRONTEND_URL=http://localhost:5173
 ```
 
 Frontend `.env`:
@@ -84,17 +115,19 @@ npm run seed
 
 **4. Start Servers**
 ```bash
-# Terminal 1 - Backend
+# Terminal 1 - Backend (runs on http://localhost:8080)
 cd backend
-npm start
+npm run dev              # Development with auto-reload
 
-# Terminal 2 - Frontend  
+# Terminal 2 - Frontend (runs on http://localhost:5173)
 cd frontend
 npm run dev
 ```
 
-**5. Open Application**
-Navigate to `http://localhost:5173`
+**5. Access Application**
+- Frontend: `http://localhost:5173`
+- Sign up for a new account or login
+- Start creating and collaborating on tickets!
 
 ---
 
@@ -102,8 +135,11 @@ Navigate to `http://localhost:5173`
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | React 18, Vite, React Router 6 |
-| **Backend** | Node.js, Express |
+| **Frontend** | React 18, Vite, React Router 6, Socket.io Client |
+| **Backend** | Node.js, Express, Socket.io |
+| **Real-Time** | Socket.io (WebSockets) |
+| **Authentication** | JWT, bcryptjs |
+| **Email** | Nodemailer (Gmail, Office365, SendGrid, etc.) |
 | **Database** | lowdb (JSON file-based) |
 | **Styling** | CSS Variables, Custom CSS |
 | **State** | React Hooks, Context API |
@@ -115,7 +151,9 @@ Navigate to `http://localhost:5173`
 ```
 issueflow/
 ├── backend/
-│   ├── server.js          # Express API (18 endpoints)
+│   ├── server.js          # Express + Socket.io server (25+ endpoints)
+│   ├── auth.js            # JWT & password authentication
+│   ├── email.js           # Email notifications
 │   ├── seed.js            # Sample data generator
 │   ├── db.json            # Database file
 │   ├── .env               # Environment config
@@ -124,12 +162,26 @@ issueflow/
 │
 └── frontend/
     ├── src/
-    │   ├── main.jsx       # Entry point
+    │   ├── main.jsx       # Entry point with auth & routing
+    │   ├── socket.js      # WebSocket service (real-time)
+    │   ├── api.js         # API client with auth headers
     │   ├── App.jsx        # Root layout & routing
-    │   ├── api.js         # API client
-    │   ├── styles.css     # Global styles
-    │   ├── components/    # Reusable components
-    │   ├── pages/         # Page components
+    │   ├── pages/
+    │   │   ├── Login.jsx          # NEW authentication
+    │   │   ├── Signup.jsx         # NEW registration
+    │   │   ├── Dashboard.jsx
+    │   │   ├── List.jsx
+    │   │   ├── Edit.jsx
+    │   │   └── Kanban.jsx
+    │   ├── contexts/
+    │   │   └── AuthContext.jsx    # NEW auth state management
+    │   ├── components/
+    │   │   ├── ActivityFeed.jsx   # NEW real-time activity
+    │   │   ├── Comments.jsx
+    │   │   ├── History.jsx
+    │   │   ├── ThemeToggle.jsx
+    │   │   └── ...
+    │   ├── styles.css
     │   ├── hooks/         # Custom hooks
     │   └── utils/         # Utilities
     ├── index.html
@@ -139,6 +191,15 @@ issueflow/
 ---
 
 ## 🔌 API Reference
+
+### Authentication Endpoints ✨ NEW
+```
+POST   /api/auth/signup      # Create account
+POST   /api/auth/login       # Login user
+GET    /api/auth/me          # Get current user (protected)
+GET    /api/auth/verify      # Verify JWT token
+GET    /api/users            # List users with online status
+```
 
 ### Core Endpoints
 ```

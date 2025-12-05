@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import http from 'http';
 import { Server } from 'socket.io';
-import { JSONFilePreset } from 'lowdb/node';
+import { Low, JSONFile } from 'lowdb';
 import { nanoid } from 'nanoid';
 import { 
   hashPassword, 
@@ -45,7 +45,12 @@ app.use(cors({
 const isTest = process.env.NODE_ENV === "test";
 const dbFile = isTest ? "./db.test.json" : "./db.json";
 
-const db = await JSONFilePreset(dbFile, { tickets: [], comments: [], history: [], savedFilters: [], users: [] });
+// Initialize lowdb with JSONFile adapter
+const adapter = new JSONFile(dbFile);
+const db = new Low(adapter, { tickets: [], comments: [], history: [], savedFilters: [], users: [] });
+await db.read();
+if (!db.data) db.data = { tickets: [], comments: [], history: [], savedFilters: [], users: [] };
+await db.write();
 
 // Real-time activity tracking
 const onlineUsers = new Map();

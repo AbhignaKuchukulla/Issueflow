@@ -1,5 +1,62 @@
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
+function getToken() {
+  return localStorage.getItem('token');
+}
+
+function getHeaders(includeAuth = true) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (includeAuth) {
+    const token = getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+// Auth endpoints
+export async function signup(name, email, password) {
+  const r = await fetch(`${BASE}/api/auth/signup`, {
+    method: 'POST',
+    headers: getHeaders(false),
+    body: JSON.stringify({ name, email, password })
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export async function login(email, password) {
+  const r = await fetch(`${BASE}/api/auth/login`, {
+    method: 'POST',
+    headers: getHeaders(false),
+    body: JSON.stringify({ email, password })
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export async function getCurrentUser() {
+  const r = await fetch(`${BASE}/api/auth/me`, {
+    headers: getHeaders(true)
+  });
+  if (!r.ok) throw new Error('Not authenticated');
+  return r.json();
+}
+
+export async function verifyToken() {
+  const r = await fetch(`${BASE}/api/auth/verify`, {
+    headers: getHeaders(true)
+  });
+  return r.ok;
+}
+
+export async function listUsers() {
+  const r = await fetch(`${BASE}/api/users`, {
+    headers: getHeaders(true)
+  });
+  if (!r.ok) throw new Error('Failed to load users');
+  return r.json();
+}
+
 export async function listTickets(params = {}) {
   const { q='', status='', priority='', assignee='', sortBy='updatedAt', sortOrder='desc', page=1, pageSize=10, fromDate='', toDate='', overdue=false, tags='' } = params;
   const u = new URL(BASE + '/api/tickets');
@@ -15,37 +72,49 @@ export async function listTickets(params = {}) {
   if (tags) u.searchParams.set('tags', tags);
   u.searchParams.set('page', page);
   u.searchParams.set('pageSize', pageSize);
-  const r = await fetch(u);
+  const r = await fetch(u, { headers: getHeaders(true) });
   if (!r.ok) throw new Error('Failed to load tickets');
   return r.json();
 }
 
 export async function getTicket(id) {
-  const r = await fetch(`${BASE}/api/tickets/${id}`);
+  const r = await fetch(`${BASE}/api/tickets/${id}`, { headers: getHeaders(true) });
   if (!r.ok) throw new Error('Not found');
   return r.json();
 }
 
 export async function createTicket(payload) {
-  const r = await fetch(`${BASE}/api/tickets`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  const r = await fetch(`${BASE}/api/tickets`, { 
+    method:'POST', 
+    headers: getHeaders(true), 
+    body: JSON.stringify(payload) 
+  });
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 
 export async function updateTicket(id, payload) {
-  const r = await fetch(`${BASE}/api/tickets/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  const r = await fetch(`${BASE}/api/tickets/${id}`, { 
+    method:'PUT', 
+    headers: getHeaders(true), 
+    body: JSON.stringify(payload) 
+  });
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 
 export async function deleteTicket(id) {
-  const r = await fetch(`${BASE}/api/tickets/${id}`, { method:'DELETE' });
+  const r = await fetch(`${BASE}/api/tickets/${id}`, { 
+    method:'DELETE',
+    headers: getHeaders(true)
+  });
   if (!r.ok && r.status !== 204) throw new Error(await r.text());
 }
+
 export async function patchTicket(id, payload) {
   const r = await fetch(`${BASE}/api/tickets/${id}`, {
     method:'PATCH',
-    headers:{'Content-Type':'application/json'},
+    headers: getHeaders(true),
     body: JSON.stringify(payload)
   });
   if (!r.ok) throw new Error(await r.text());
@@ -54,7 +123,7 @@ export async function patchTicket(id, payload) {
 
 // Comments API
 export async function getComments(ticketId) {
-  const r = await fetch(`${BASE}/api/tickets/${ticketId}/comments`);
+  const r = await fetch(`${BASE}/api/tickets/${ticketId}/comments`, { headers: getHeaders(true) });
   if (!r.ok) throw new Error('Failed to load comments');
   return r.json();
 }
@@ -62,7 +131,7 @@ export async function getComments(ticketId) {
 export async function createComment(ticketId, payload) {
   const r = await fetch(`${BASE}/api/tickets/${ticketId}/comments`, {
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers: getHeaders(true),
     body: JSON.stringify(payload)
   });
   if (!r.ok) throw new Error(await r.text());
@@ -70,7 +139,10 @@ export async function createComment(ticketId, payload) {
 }
 
 export async function deleteComment(id) {
-  const r = await fetch(`${BASE}/api/comments/${id}`, { method:'DELETE' });
+  const r = await fetch(`${BASE}/api/comments/${id}`, { 
+    method:'DELETE',
+    headers: getHeaders(true)
+  });
   if (!r.ok && r.status !== 204) throw new Error(await r.text());
 }
 
