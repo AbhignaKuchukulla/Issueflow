@@ -3,7 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import http from 'http';
 import { Server } from 'socket.io';
-import { Low, JSONFile } from 'lowdb';
+import { Low } from 'lowdb';
+import { JSONFile } from 'lowdb/node';
 import { nanoid } from 'nanoid';
 import { 
   hashPassword, 
@@ -44,12 +45,12 @@ app.use(cors({
 // test DB vs real DB
 const isTest = process.env.NODE_ENV === "test";
 const dbFile = isTest ? "./db.test.json" : "./db.json";
+const defaultData = { tickets: [], comments: [], history: [], savedFilters: [], users: [] };
 
 // Initialize lowdb with JSONFile adapter
 const adapter = new JSONFile(dbFile);
-const db = new Low(adapter);
+const db = new Low(adapter, defaultData);
 await db.read();
-const defaultData = { tickets: [], comments: [], history: [], savedFilters: [], users: [] };
 if (!db.data) {
   db.data = defaultData;
   await db.write();
